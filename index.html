@@ -9,6 +9,9 @@
     <!-- Lucide Icons (圖標庫) -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
+    <!-- Marked (Markdown Parser) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
     <!-- Native CSS Styles -->
     <link rel="stylesheet" href="style/style.css">
 </head>
@@ -27,17 +30,16 @@
                 AWS <span class="title-gradient">Personal Assistant</span>
             </h1>
             <p style="color: var(--text-muted); font-size: 1.2rem; margin-bottom: 2.5rem; line-height: 1.6;">
-                您的全方位雲端智慧管家。<br>整合 AWS Bedrock、Kendra 與 DynamoDB。
+                Group 21 Final Project<br>
             </p>
             <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                 <button id="btn-guest-login" class="btn-large btn-primary">
-                    <i data-lucide="user"></i> 訪客試用
+                    <i data-lucide="user"></i> 訪客登入
                 </button>
                 <button id="btn-google-login" class="btn-large btn-google">
                     <i data-lucide="chrome"></i> Google 登入
                 </button>
             </div>
-            <p style="margin-top: 2rem; color: #475569; font-size: 0.9rem;">Group 21 Final Project Presentation</p>
         </div>
     </div>
 
@@ -91,8 +93,8 @@
                 <!-- 1. DASHBOARD -->
                 <section id="dashboard-section" class="max-w-container animate-fade-in hidden">
                     <header style="margin-bottom: 2rem;">
-                        <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">早安，歡迎回來</h2>
-                        <p style="color: var(--text-muted);">語音控制中樞已就緒。</p>
+                        <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">你好，歡迎回來</h2>
+                        <p style="color: var(--text-muted);">語音控制系統已準備</p>
                     </header>
 
                     <div class="card hero-card">
@@ -119,24 +121,18 @@
                                 <i data-lucide="sun" color="#facc15"></i>
                             </div>
                             <h3>天氣預報</h3>
-                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">Open-Meteo 即時氣象
-                            </p>
                         </div>
                         <div class="card feature-card" onclick="window.app.router.navigate('expense')">
                             <div class="icon-box" style="background: rgba(16, 185, 129, 0.1);">
                                 <i data-lucide="wallet" color="#10b981"></i>
                             </div>
                             <h3>記帳管理</h3>
-                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">Firestore 雲端同步
-                            </p>
                         </div>
                         <div class="card feature-card" onclick="window.app.router.navigate('search')">
                             <div class="icon-box" style="background: rgba(168, 85, 247, 0.1);">
                                 <i data-lucide="search" color="#a855f7"></i>
                             </div>
                             <h3>AI 智慧搜尋</h3>
-                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">Bedrock & Kendra
-                            </p>
                         </div>
                     </div>
                 </section>
@@ -317,13 +313,13 @@
     <script>
         // Inject Firebase Configuration for firebase-init.js
         window.__firebase_config = JSON.stringify({
-            apiKey: "AIzaSyCyFu4JCvqGtj6H1pInPE5wfpOTaNnubBE",
-            authDomain: "personal-assistant-rob.firebaseapp.com",
-            projectId: "personal-assistant-rob",
-            storageBucket: "personal-assistant-rob.firebasestorage.app",
-            messagingSenderId: "10282114344",
-            appId: "1:10282114344:web:f6d0994368ddbab14d041d",
-            measurementId: "G-5SZXXN8M09"
+            apiKey: "**************",
+            authDomain: "**************",
+            projectId: "**************",
+            storageBucket: "**************",
+            messagingSenderId: "**************",
+            appId: "**************",
+            measurementId: "**************"
         });
     </script>
 

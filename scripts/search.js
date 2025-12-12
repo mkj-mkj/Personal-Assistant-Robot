@@ -1,5 +1,5 @@
 // --- Search ---
-const GEMINI_API_KEY = 'AIzaSyCtCCszbSo7WqQbrGvj8jltmW0lToJ442U'; // TODO: Replace with your actual Gemini API Key
+const GEMINI_API_KEY = '*******************'; //Replace with your actual Gemini API Key
 
 window.SearchManager = {
     init() {
@@ -69,7 +69,13 @@ window.SearchManager = {
         const div = document.createElement('div');
         div.className = `msg ${type}`;
         if (isLoading) div.id = 'chat-loading';
-        div.innerText = text;
+
+        if (type === 'ai' && window.marked) {
+            div.innerHTML = marked.parse(text);
+        } else {
+            div.innerText = text;
+        }
+
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
     },

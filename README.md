@@ -1,12 +1,10 @@
-### 1. 安裝依賴
+### 1. 安裝node.js
 安裝 Node.js，然後在專案目錄下執行：
 ```bash
 npm install
 ```
 ### 2. 設定 Firebase (Google 登入)
-本專案使用 Firebase 進行使用者認證。
-
-1.  前往 [Firebase Console](https://console.firebase.google.com/)。
+1.  到 [Firebase Console](https://console.firebase.google.com/)。
 2.  建立一個新專案。
 3.  **啟用 Authentication**：
     *   進入 **Build** > **Authentication**。
@@ -33,9 +31,7 @@ npm install
     ```
 
 ### 3. 設定 Gemini API (AI 搜尋)
-本專案使用 Google Gemini API 進行智慧問答。
-
-1.  前往 [Google AI Studio](https://aistudio.google.com/)。
+1.  到 [Google AI Studio](https://aistudio.google.com/)。
 2.  點擊 **Get API key**。
 3.  複製 API Key。
 4.  到 `scripts/search.js`。
