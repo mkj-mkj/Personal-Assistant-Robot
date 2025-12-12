@@ -1,5 +1,5 @@
 // --- Search ---
-const GEMINI_API_KEY = '*******************'; //Replace with your actual Gemini API Key
+const GEMINI_API_KEY = '**********'; //Replace with your actual Gemini API Key
 
 window.SearchManager = {
     init() {
@@ -28,7 +28,7 @@ window.SearchManager = {
         this.addMessage('system', 'AI 正在思考...', true);
 
         try {
-            const response = await this.callGeminiAPI(query, GEMINI_API_KEY);
+            const response = await this.callGeminiAPI(query + " (請一律使用繁體中文回答，不要使用簡體中文)", GEMINI_API_KEY);
             const loader = document.getElementById('chat-loading');
             if (loader) loader.remove();
 

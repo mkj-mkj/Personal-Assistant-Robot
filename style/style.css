@@ -578,6 +578,62 @@ tr:last-child td {
     background-color: var(--bg-hover);
     color: var(--text-main);
     border-bottom-left-radius: 2px;
+    /* Markdown Styles */
+    overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 100%;
+}
+
+.msg.ai p {
+    margin-bottom: 0.5rem;
+}
+
+.msg.ai p:last-child {
+    margin-bottom: 0;
+}
+
+.msg.ai ul,
+.msg.ai ol {
+    margin-left: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.msg.ai li {
+    margin-bottom: 0.25rem;
+}
+
+.msg.ai h1,
+.msg.ai h2,
+.msg.ai h3 {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.msg.ai code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.msg.ai pre {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.5rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin-bottom: 0.5rem;
+}
+
+.msg.ai pre code {
+    background: none;
+    padding: 0;
+}
+
+.msg.ai a {
+    color: var(--primary);
+    text-decoration: underline;
 }
 
 .chat-input-area {
