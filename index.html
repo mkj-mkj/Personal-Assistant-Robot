@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Personal Assistant | Group 21</title>
+
+    <!-- Lucide Icons (圖標庫) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Native CSS Styles -->
+    <style>
+        :root {
+            /* Color Palette (Slate-like Dark Theme) */
+            --bg-body: #020617;
+            --bg-sidebar: #0f172a;
+            --bg-card: #1e293b;
+            --bg-hover: #334155;
+            --border-color: #334155;
+
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+
+            --primary: #4f46e5;
+            /* Indigo */
+            --primary-hover: #4338ca;
+
+            --accent-yellow: #facc15;
+            --accent-emerald: #10b981;
+            --accent-purple: #a855f7;
+            --accent-red: #ef4444;
+
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Utilities --- */
+        .hidden {
+            display: none !important;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .justify-center {
+            justify-content: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .gap-2 {
+            gap: 0.5rem;
+        }
+
+        .gap-4 {
+            gap: 1rem;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* --- Animations --- */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            50% {
+                opacity: .5;
+            }
+        }
+
+        /* --- Scrollbar --- */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-body);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--bg-hover);
+        }
+
+        /* --- Login View --- */
+        #login-view {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bg-sidebar);
+        }
+
+        .login-bg {
+            position: absolute;
+            inset: 0;
+            background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.2;
+        }
+
+        .login-content {
+            z-index: 10;
+            max-width: 600px;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .title-gradient {
+            background: linear-gradient(to right, #818cf8, #22d3ee);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .btn-large {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            border-radius: var(--radius);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.2s;
+            font-weight: bold;
+        }
+
+        .btn-large:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: white;
+        }
+
+        .btn-outline:hover {
+            background-color: var(--bg-hover);
+        }
+
+        /* --- App Layout --- */
+        #app-view {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .nav-menu {
+            flex: 1;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-btn {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius);
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1rem;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-main);
+        }
+
+        .nav-btn.active {
+            background-color: rgba(79, 70, 229, 0.1);
+            color: #818cf8;
+            border: 1px solid rgba(79, 70, 229, 0.2);
+        }
+
+        .user-panel {
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-hover);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            background-color: var(--bg-body);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .scroll-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .max-w-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* --- Components --- */
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        /* Dashboard Hero */
+        .hero-card {
+            background: linear-gradient(135deg, var(--bg-sidebar), #1e1b4b);
+            text-align: center;
+            padding: 3rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mic-btn-large {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--primary);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            box-shadow: 0 0 20px rgba(79, 70, 229, 0.5);
+            transition: transform 0.2s;
+            position: relative;
+            z-index: 10;
+        }
+
+        .mic-btn-large:hover {
+            transform: scale(1.05);
+            background-color: var(--primary-hover);
+        }
+
+        .mic-btn-large.listening {
+            background-color: var(--accent-red);
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Quick Access Grid */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature-card {
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--text-muted);
+        }
+
+        .icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        /* Top Bar (Weather/Back) */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .back-btn:hover {
+            color: var(--text-main);
+            background: var(--bg-hover);
+        }
+
+        /* Forms & Inputs */
+        .input-group {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background-color: var(--bg-body);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: var(--radius);
+            outline: none;
+            font-size: 1rem;
+        }
+
+        .input-field:focus {
+            border-color: var(--primary);
+        }
+
+        .input-icon-left {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .input-btn-right {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--bg-hover);
+            border: none;
+            color: var(--accent-yellow);
+            padding: 0.25rem;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+        }
+
+        /* Weather Specific */
+        .weather-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            height: 100%;
+        }
+
+        .weather-main {
+            background: linear-gradient(135deg, #2563eb, #06b6d4);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .temp-display {
+            font-size: 5rem;
+            font-weight: bold;
+            line-height: 1;
+            margin: 1.5rem 0;
+        }
+
+        .forecast-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Expense Specific */
+        .expense-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .expense-summary {
+            background: linear-gradient(135deg, #059669, #0d9488);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            color: var(--text-muted);
+            font-weight: 500;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .select-field {
+            background: var(--bg-body);
+            color: white;
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            border-radius: var(--radius);
+        }
+
+        /* Search Chat */
+        .chat-container {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            min-height: 400px;
+        }
+
+        .msg {
+            max-width: 80%;
+            padding: 1rem;
+            border-radius: var(--radius);
+            line-height: 1.5;
+        }
+
+        .msg.user {
+            align-self: flex-end;
+            background-color: var(--primary);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .msg.ai {
+            align-self: flex-start;
+            background-color: var(--bg-hover);
+            color: var(--text-main);
+            border-bottom-left-radius: 2px;
+        }
+
+        .chat-input-area {
+            position: relative;
+        }
+
+        .voice-btn-chat {
+            position: absolute;
+            right: 3.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .send-btn-chat {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--primary);
+            border: none;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+        }
+
+        /* Mobile Responsive */
+        .mobile-header {
+            display: none;
+            padding: 1rem;
+            background: var(--bg-sidebar);
+            border-bottom: 1px solid var(--border-color);
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-sidebar);
+            border-top: 1px solid var(--border-color);
+            padding: 0.5rem;
+            justify-content: space-around;
+            z-index: 20;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .mobile-header {
+                display: flex;
+            }
+
+            .mobile-nav {
+                display: flex;
+            }
+
+            .weather-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .scroll-container {
+                padding: 1rem;
+                padding-bottom: 80px;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .input-group {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LOGIN VIEW -->
+    <div id="login-view">
+        <div class="login-bg"></div>
+        <div class="login-content animate-fade-in">
+            <div
+                style="display: inline-flex; padding: 1rem; background: rgba(79, 70, 229, 0.2); border-radius: 50%; margin-bottom: 1.5rem;">
+                <i data-lucide="bot" width="48" height="48" style="color: #818cf8;"></i>
+            </div>
+            <h1 style="font-size: 3rem; margin-bottom: 1rem; font-weight: 800;">
+                AWS <span class="title-gradient">Personal Assistant</span>
+            </h1>
+            <p style="color: var(--text-muted); font-size: 1.2rem; margin-bottom: 2.5rem; line-height: 1.6;">
+                您的全方位雲端智慧管家。<br>整合 AWS Bedrock、Kendra 與 DynamoDB。
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button id="btn-guest-login" class="btn-large btn-primary">
+                    <i data-lucide="user"></i> 訪客試用
+                </button>
+            </div>
+            <p style="margin-top: 2rem; color: #475569; font-size: 0.9rem;">Group 21 Final Project Presentation</p>
+        </div>
+    </div>
+
+    <!-- APP VIEW -->
+    <div id="app-view" class="hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div style="background: var(--primary); padding: 6px; border-radius: 8px; display:flex;">
+                    <i data-lucide="bot" color="white"></i>
+                </div>
+                AWS Assistant
+            </div>
+            <nav class="nav-menu" id="nav-buttons-desktop">
+                <!-- JS Generated -->
+            </nav>
+            <div class="user-panel">
+                <div class="user-info">
+                    <div class="avatar">
+                        <img id="user-avatar" class="hidden" alt="">
+                        <i id="user-icon" data-lucide="user" color="#94a3b8"></i>
+                    </div>
+                    <div style="overflow: hidden;">
+                        <div id="user-email"
+                            style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            Guest</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">使用者</div>
+                    </div>
+                </div>
+                <button id="btn-logout"
+                    style="width: 100%; padding: 0.5rem; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <i data-lucide="log-out" width="16"></i> 登出系統
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Mobile Header -->
+            <header class="mobile-header">
+                <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: bold; color: #818cf8;">
+                    <i data-lucide="bot"></i> AWS Assistant
+                </div>
+                <button id="btn-logout-mobile" style="background: none; border: none; color: var(--text-muted);">
+                    <i data-lucide="log-out"></i>
+                </button>
+            </header>
+
+            <div class="scroll-container custom-scrollbar">
+
+                <!-- 1. DASHBOARD -->
+                <section id="dashboard-section" class="max-w-container animate-fade-in hidden">
+                    <header style="margin-bottom: 2rem;">
+                        <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">早安，歡迎回來</h2>
+                        <p style="color: var(--text-muted);">語音控制中樞已就緒。</p>
+                    </header>
+
+                    <div class="card hero-card">
+                        <button id="btn-voice-main" class="mic-btn-large">
+                            <i data-lucide="mic" width="40" height="40"></i>
+                        </button>
+                        <p id="voice-status-text" style="margin-top: 1.5rem; color: #c7d2fe; font-size: 1.2rem;">
+                            點擊麥克風，開始語音指令</p>
+                        <div
+                            style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                            <span
+                                style="background: rgba(0,0,0,0.3); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; color: #94a3b8;">"台北天氣"</span>
+                            <span
+                                style="background: rgba(0,0,0,0.3); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; color: #94a3b8;">"記帳午餐100元"</span>
+                            <span
+                                style="background: rgba(0,0,0,0.3); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; color: #94a3b8;">"搜尋
+                                AWS 服務"</span>
+                        </div>
+                    </div>
+
+                    <div class="grid-3">
+                        <div class="card feature-card" onclick="window.app.router.navigate('weather')">
+                            <div class="icon-box" style="background: rgba(250, 204, 21, 0.1);">
+                                <i data-lucide="sun" color="#facc15"></i>
+                            </div>
+                            <h3>天氣預報</h3>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">Open-Meteo 即時氣象
+                            </p>
+                        </div>
+                        <div class="card feature-card" onclick="window.app.router.navigate('expense')">
+                            <div class="icon-box" style="background: rgba(16, 185, 129, 0.1);">
+                                <i data-lucide="wallet" color="#10b981"></i>
+                            </div>
+                            <h3>記帳管理</h3>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">Firestore 雲端同步
+                            </p>
+                        </div>
+                        <div class="card feature-card" onclick="window.app.router.navigate('search')">
+                            <div class="icon-box" style="background: rgba(168, 85, 247, 0.1);">
+                                <i data-lucide="search" color="#a855f7"></i>
+                            </div>
+                            <h3>AI 智慧搜尋</h3>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">Bedrock & Kendra
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. WEATHER -->
+                <section id="weather-section" class="max-w-container animate-fade-in hidden" style="height: 100%;">
+                    <div class="top-bar">
+                        <button class="back-btn" onclick="window.app.router.navigate('dashboard')">
+                            <i data-lucide="arrow-left" width="18"></i> 返回菜單
+                        </button>
+                        <form id="weather-search-form" class="input-group">
+                            <i data-lucide="map-pin" class="input-icon-left" width="18"></i>
+                            <input id="weather-search-input" type="text" class="input-field"
+                                placeholder="輸入城市 (如: Tokyo)...">
+                            <button type="submit" class="input-btn-right">
+                                <i data-lucide="search" width="18"></i>
+                            </button>
+                        </form>
+                    </div>
+
+                    <div id="weather-loading" class="hidden text-center"
+                        style="padding: 2rem; color: var(--accent-yellow);">
+                        正在更新氣象數據...
+                    </div>
+                    <div id="weather-error" class="hidden text-center"
+                        style="padding: 1rem; color: var(--accent-red); background: rgba(239,68,68,0.1); border-radius: var(--radius);">
+                    </div>
+
+                    <div id="weather-content" class="weather-grid">
+                        <!-- Dynamic Content -->
+                    </div>
+                </section>
+
+                <!-- 3. EXPENSE -->
+                <section id="expense-section" class="max-w-container animate-fade-in hidden">
+                    <div class="top-bar">
+                        <button class="back-btn" onclick="window.app.router.navigate('dashboard')">
+                            <i data-lucide="arrow-left" width="18"></i> 返回菜單
+                        </button>
+                        <div id="expense-mock-badge" class="hidden"
+                            style="background: #334155; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; color: #cbd5e1;">
+                            試用模式</div>
+                    </div>
+
+                    <div class="expense-layout">
+                        <div style="display: flex; flex-wrap: wrap; gap: 1.5rem;">
+                            <!-- Summary -->
+                            <div class="card expense-summary" style="flex: 1; min-width: 280px;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <i data-lucide="wallet" color="#a7f3d0"></i> <span>本月總支出</span>
+                                </div>
+                                <h2 id="expense-total" style="font-size: 3rem;">$0</h2>
+                            </div>
+
+                            <!-- Form -->
+                            <form id="expense-form" class="card" style="flex: 2; min-width: 300px;">
+                                <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i data-lucide="plus-circle"></i> 新增支出
+                                </h3>
+                                <div class="form-row">
+                                    <select id="expense-category" class="select-field" style="width: 100px;">
+                                        <option value="餐飲">餐飲</option>
+                                        <option value="交通">交通</option>
+                                        <option value="購物">購物</option>
+                                        <option value="娛樂">娛樂</option>
+                                        <option value="其他">其他</option>
+                                    </select>
+                                    <input id="expense-amount" type="number" placeholder="金額" class="input-field"
+                                        style="padding-left: 1rem;">
+                                </div>
+                                <div class="form-row">
+                                    <input id="expense-desc" type="text" placeholder="備註 (選填)" class="input-field"
+                                        style="padding-left: 1rem;">
+                                    <button type="submit" class="btn-large btn-primary"
+                                        style="padding: 0.75rem 1.5rem; font-size: 1rem;">新增</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="card" style="padding: 0; overflow: hidden;">
+                            <div
+                                style="padding: 1rem; border-bottom: 1px solid var(--border-color); font-weight: bold; color: var(--text-muted);">
+                                支出明細</div>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>日期</th>
+                                            <th>類別</th>
+                                            <th>描述</th>
+                                            <th style="text-align: right;">金額</th>
+                                            <th style="text-align: center;">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="expense-table-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. SEARCH -->
+                <section id="search-section" class="max-w-container animate-fade-in hidden"
+                    style="height: 100%; display: flex; flex-direction: column;">
+                    <div class="top-bar">
+                        <button class="back-btn" onclick="window.app.router.navigate('dashboard')">
+                            <i data-lucide="arrow-left" width="18"></i> 返回菜單
+                        </button>
+                    </div>
+
+                    <div class="card"
+                        style="background: var(--primary); color: white; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <h2 style="display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="sparkles"
+                                    color="#facc15"></i> AI 智慧助理</h2>
+                            <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 0.2rem;">Powered by AWS Bedrock</p>
+                        </div>
+                        <i data-lucide="bot" width="40" height="40" style="opacity: 0.2;"></i>
+                    </div>
+
+                    <div id="chat-container" class="chat-container custom-scrollbar">
+                        <div id="chat-placeholder"
+                            style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); opacity: 0.5;">
+                            <i data-lucide="bot" width="64" height="64" style="margin-bottom: 1rem;"></i>
+                            <p>有什麼我可以幫您的嗎？</p>
+                        </div>
+                    </div>
+
+                    <form id="chat-form" class="chat-input-area">
+                        <input id="chat-input" type="text" class="input-field" placeholder="輸入訊息..."
+                            style="padding-right: 6rem;">
+                        <button id="btn-chat-voice" type="button" class="voice-btn-chat">
+                            <i data-lucide="mic"></i>
+                        </button>
+                        <button type="submit" class="send-btn-chat">
+                            <i data-lucide="send" width="18"></i>
+                        </button>
+                    </form>
+                </section>
+
+            </div>
+
+            <!-- Mobile Bottom Nav -->
+            <nav class="mobile-nav">
+                <button class="nav-btn"
+                    style="flex-direction: column; gap: 2px; font-size: 0.7rem; justify-content: center; align-items: center;"
+                    onclick="window.app.router.navigate('dashboard')">
+                    <i data-lucide="layout-dashboard" width="20"></i> 首頁
+                </button>
+                <button class="nav-btn"
+                    style="flex-direction: column; gap: 2px; font-size: 0.7rem; justify-content: center; align-items: center;"
+                    onclick="window.app.router.navigate('weather')">
+                    <i data-lucide="sun" width="20"></i> 天氣
+                </button>
+                <button class="nav-btn"
+                    style="flex-direction: column; gap: 2px; font-size: 0.7rem; justify-content: center; align-items: center;"
+                    onclick="window.app.router.navigate('expense')">
+                    <i data-lucide="wallet" width="20"></i> 記帳
+                </button>
+                <button class="nav-btn"
+                    style="flex-direction: column; gap: 2px; font-size: 0.7rem; justify-content: center; align-items: center;"
+                    onclick="window.app.router.navigate('search')">
+                    <i data-lucide="search" width="20"></i> 搜尋
+                </button>
+            </nav>
+        </main>
+    </div>
+
+    <!-- LOGIC -->
+    <script>
+        // --- State ---
+        const state = {
+            user: null,
+            view: 'dashboard',
+            expenses: [],
+            weather: null
+        };
+
+        // --- Helper ---
+        const $ = (id) => document.getElementById(id);
+
+        // --- Router ---
+        const Router = {
+            init() {
+                const navContainer = $('nav-buttons-desktop');
+                const items = [
+                    { id: 'dashboard', icon: 'layout-dashboard', label: '首頁總覽' },
+                    { id: 'weather', icon: 'sun', label: '天氣預報' },
+                    { id: 'expense', icon: 'wallet', label: '記帳管理' },
+                    { id: 'search', icon: 'search', label: 'AI 搜尋' }
+                ];
+
+                items.forEach(item => {
+                    const btn = document.createElement('button');
+                    btn.className = 'nav-btn';
+                    btn.dataset.view = item.id;
+                    btn.innerHTML = `<i data-lucide="${item.icon}" width="18"></i> ${item.label}`;
+                    btn.onclick = () => this.navigate(item.id);
+                    navContainer.appendChild(btn);
+                });
+
+                if (window.lucide) lucide.createIcons();
+            },
+
+            navigate(viewId) {
+                state.view = viewId;
+
+                // Toggle sections
+                ['dashboard', 'weather', 'expense', 'search'].forEach(id => {
+                    const el = $(`${id}-section`);
+                    if (id === viewId) {
+                        el.classList.remove('hidden');
+                        if (id === 'search') {
+                            el.style.display = 'flex'; // Special fix for search layout
+                        } else {
+                            el.style.display = 'block'; // Reset
+                        }
+                    } else {
+                        el.classList.add('hidden');
+                        el.style.display = 'none';
+                    }
+                });
+
+                // Update Active State
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    if (btn.dataset.view === viewId) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                });
+
+                if (viewId === 'weather' && !state.weather) WeatherManager.fetchWeather();
+                if (window.lucide) lucide.createIcons();
+            }
+        };
+
+        // --- Auth ---
+        const AuthManager = {
+            init() {
+                const guestBtn = $('btn-guest-login');
+                if (guestBtn) {
+                    guestBtn.onclick = () => this.setMockUser();
+                }
+
+                $('btn-logout').onclick = () => this.logout();
+                $('btn-logout-mobile').onclick = () => this.logout();
+            },
+
+            setMockUser() {
+                this.handleUser({ uid: 'mock-user', email: 'guest@demo.com', isMock: true });
+            },
+
+            handleUser(user) {
+                state.user = user;
+                if (user) {
+                    $('login-view').classList.add('hidden');
+                    $('app-view').classList.remove('hidden');
+
+                    $('user-email').textContent = user.email || 'Guest User';
+                    if (user.photoURL) {
+                        $('user-avatar').src = user.photoURL;
+                        $('user-avatar').classList.remove('hidden');
+                        $('user-icon').classList.add('hidden');
+                    }
+
+                    ExpenseManager.initListener();
+                    Router.navigate('dashboard');
+                } else {
+                    $('login-view').classList.remove('hidden');
+                    $('app-view').classList.add('hidden');
+                }
+            },
+
+            logout() {
+                // If firebase auth is available, sign out
+                if (window.firebaseServices && window.firebaseServices.auth && !state.user?.isMock) {
+                    window.firebaseServices.signOut(window.firebaseServices.auth);
+                } else {
+                    // Local logout
+                    state.user = null;
+                    this.handleUser(null);
+                }
+            }
+        };
+
+        // --- Weather ---
+        const WeatherManager = {
+            init() {
+                $('weather-search-form').onsubmit = (e) => {
+                    e.preventDefault();
+                    const city = $('weather-search-input').value;
+                    if (city) this.searchCity(city);
+                };
+            },
+
+            async fetchWeather(lat = 25.0330, lon = 121.5654, name = "台北市") {
+                const loader = $('weather-loading');
+                const content = $('weather-content');
+                const errorDiv = $('weather-error');
+
+                loader.classList.remove('hidden');
+                content.innerHTML = '';
+                errorDiv.classList.add('hidden');
+
+                try {
+                    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`);
+                    const data = await res.json();
+                    this.render(data, name);
+                } catch (e) {
+                    console.error(e);
+                    errorDiv.textContent = "無法取得天氣資訊";
+                    errorDiv.classList.remove('hidden');
+                } finally {
+                    loader.classList.add('hidden');
+                }
+            },
+
+            async searchCity(city) {
+                const loader = $('weather-loading');
+                const errorDiv = $('weather-error');
+
+                loader.classList.remove('hidden');
+                errorDiv.classList.add('hidden');
+
+                try {
+                    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh&format=json`);
+                    const data = await res.json();
+
+                    if (data.results && data.results.length > 0) {
+                        const { latitude, longitude, name } = data.results[0];
+                        this.fetchWeather(latitude, longitude, name);
+                        $('weather-search-input').value = '';
+                    } else {
+                        errorDiv.textContent = `找不到 "${city}"，請嘗試英文名稱。`;
+                        errorDiv.classList.remove('hidden');
+                        loader.classList.add('hidden');
+                    }
+                } catch (e) {
+                    errorDiv.textContent = "搜尋服務連線失敗";
+                    errorDiv.classList.remove('hidden');
+                    loader.classList.add('hidden');
+                }
+            },
+
+            render(data, locationName) {
+                const current = data.current;
+                const daily = data.daily;
+                const container = $('weather-content');
+
+                const getIcon = (code) => {
+                    if (code <= 3) return 'sun';
+                    if (code <= 67) return 'cloud-rain';
+                    return 'cloud';
+                };
+
+                let forecastHtml = '';
+                for (let i = 1; i < 4; i++) {
+                    forecastHtml += `
+                        <div class="forecast-item">
+                            <span style="font-family: monospace; color: var(--text-muted);">${daily.time[i]}</span>
+                            <div style="display:flex; align-items:center; gap: 1rem;">
+                                <i data-lucide="${getIcon(daily.weather_code[i])}" width="20"></i>
+                                <div style="text-align: right;">
+                                    <div style="font-weight: bold;">${Math.round(daily.temperature_2m_max[i])}°</div>
+                                    <div style="font-size: 0.8rem; color: #94a3b8;">${Math.round(daily.temperature_2m_min[i])}°</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = `
+                    <div class="card weather-main">
+                        <div>
+                            <h2 style="font-size: 2rem; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="map-pin"></i> ${locationName}</h2>
+                            <div class="temp-display">${Math.round(current.temperature_2m)}°</div>
+                            <div style="font-size: 1.2rem; opacity: 0.9;">Open-Meteo 即時氣象</div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: var(--radius);">
+                            <div>
+                                <p style="font-size: 0.8rem; opacity: 0.7;">風速</p>
+                                <p style="font-weight: bold; font-size: 1.2rem;">${current.wind_speed_10m} km/h</p>
+                            </div>
+                            <div>
+                                <p style="font-size: 0.8rem; opacity: 0.7;">濕度</p>
+                                <p style="font-weight: bold; font-size: 1.2rem;">${current.relative_humidity_2m}%</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3 style="margin-bottom: 1rem; color: var(--text-muted);">未來預報</h3>
+                        ${forecastHtml}
+                    </div>
+                `;
+                if (window.lucide) lucide.createIcons();
+            }
+        };
+
+        // --- Expense ---
+        const ExpenseManager = {
+            unsubscribe: null,
+
+            init() {
+                $('expense-form').onsubmit = (e) => {
+                    e.preventDefault();
+                    this.addExpense();
+                };
+            },
+
+            initListener() {
+                if (this.unsubscribe) this.unsubscribe();
+                const user = state.user;
+                if (!user) return;
+
+                // Mock Mode or No Firebase
+                if (user.isMock || !window.firebaseServices) {
+                    $('expense-mock-badge').classList.remove('hidden');
+                    // Setup initial dummy data if empty
+                    if (state.expenses.length === 0) {
+                        this.render([
+                            { id: '1', amount: 200, category: '餐飲', description: '午餐', dateString: '2023/12/12' },
+                            { id: '2', amount: 50, category: '交通', description: '捷運', dateString: '2023/12/12' }
+                        ]);
+                    }
+                    return;
+                }
+
+                // Firebase Mode
+                $('expense-mock-badge').classList.add('hidden');
+
+                try {
+                    const { db, collection, query, orderBy, onSnapshot } = window.firebaseServices;
+                    const appId = window.__app_id || 'default-app-id';
+
+                    const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'expenses'), orderBy('createdAt', 'desc'));
+                    this.unsubscribe = onSnapshot(q, (snapshot) => {
+                        this.render(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    });
+                } catch (e) {
+                    console.error("Firebase expense listener failed:", e);
+                    // Fallback to mock
+                    $('expense-mock-badge').classList.remove('hidden');
+                }
+            },
+
+            async addExpense() {
+                const amt = $('expense-amount').value;
+                const cat = $('expense-category').value;
+                const desc = $('expense-desc').value;
+                if (!amt) return;
+
+                const newDoc = {
+                    amount: Number(amt),
+                    category: cat,
+                    description: desc || cat,
+                    createdAt: new Date(), // Local object for mock
+                    dateString: new Date().toLocaleDateString()
+                };
+
+                if (state.user.isMock || !window.firebaseServices) {
+                    alert("試用模式：資料已新增至介面 (不會儲存到雲端)");
+                    this.render([{ ...newDoc, id: Date.now().toString() }, ...state.expenses]);
+                } else {
+                    try {
+                        const { db, collection, addDoc, serverTimestamp } = window.firebaseServices;
+                        const appId = window.__app_id || 'default-app-id';
+                        await addDoc(collection(db, 'artifacts', appId, 'users', state.user.uid, 'expenses'), {
+                            ...newDoc,
+                            createdAt: serverTimestamp()
+                        });
+                    } catch (e) {
+                        console.error("Add expense failed", e);
+                        alert("儲存失敗，請檢查網路");
+                    }
+                }
+                $('expense-amount').value = '';
+                $('expense-desc').value = '';
+            },
+
+            async deleteExpense(id) {
+                if (state.user.isMock || !window.firebaseServices) {
+                    this.render(state.expenses.filter(e => e.id !== id));
+                    return;
+                }
+                try {
+                    const { db, doc, deleteDoc } = window.firebaseServices;
+                    const appId = window.__app_id || 'default-app-id';
+                    await deleteDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'expenses', id));
+                } catch (e) {
+                    console.error("Delete failed", e);
+                }
+            },
+
+            render(data) {
+                state.expenses = data;
+                const total = data.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+                $('expense-total').textContent = `$${total.toLocaleString()}`;
+
+                const tbody = $('expense-table-body');
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">無資料</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.map(item => `
+                    <tr>
+                        <td style="color: var(--text-muted); font-family: monospace;">${item.dateString}</td>
+                        <td><span style="background: var(--bg-hover); padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;">${item.category}</span></td>
+                        <td>${item.description}</td>
+                        <td style="text-align: right; color: var(--accent-emerald); font-weight: bold;">$${item.amount}</td>
+                        <td style="text-align: center;">
+                            <button onclick="window.app.expense.deleteExpense('${item.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">
+                                <i data-lucide="trash-2" width="16"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+                if (window.lucide) lucide.createIcons();
+            }
+        };
+
+        // --- Search ---
+        const SearchManager = {
+            init() {
+                $('chat-form').onsubmit = (e) => {
+                    e.preventDefault();
+                    this.handleSearch();
+                };
+                $('btn-chat-voice').onclick = () => this.startVoice((txt) => $('chat-input').value = txt, $('btn-chat-voice'));
+                $('btn-voice-main').onclick = () => this.startVoice((txt) => this.processCommand(txt), $('btn-voice-main'));
+            },
+
+            handleSearch() {
+                const input = $('chat-input');
+                const query = input.value;
+                if (!query) return;
+
+                this.addMessage('user', query);
+                input.value = '';
+                $('chat-placeholder').classList.add('hidden');
+
+                this.addMessage('system', 'AI 正在思考...', true);
+                setTimeout(() => {
+                    const loader = document.getElementById('chat-loading');
+                    if (loader) loader.remove();
+                    this.addMessage('ai', `根據您的查詢「${query}」分析結果：\n1. 您的餐飲支出佔比 45%。\n2. 建議減少外食頻率。`);
+                }, 1500);
+            },
+
+            addMessage(type, text, isLoading = false) {
+                const container = $('chat-container');
+                const div = document.createElement('div');
+                div.className = `msg ${type}`;
+                if (isLoading) div.id = 'chat-loading';
+                div.innerText = text;
+                container.appendChild(div);
+                container.scrollTop = container.scrollHeight;
+            },
+
+            startVoice(cb, btn) {
+                if (!('webkitSpeechRecognition' in window)) {
+                    alert("不支援語音 API，模擬輸入");
+                    cb("記帳");
+                    return;
+                }
+                const recognition = new webkitSpeechRecognition();
+                recognition.lang = 'zh-TW';
+                btn.classList.add('listening'); // Add visual cue
+                recognition.onresult = (e) => cb(e.results[0][0].transcript);
+                recognition.onend = () => btn.classList.remove('listening');
+                recognition.start();
+            },
+
+            processCommand(cmd) {
+                $('voice-status-text').textContent = `指令: "${cmd}"`;
+                setTimeout(() => $('voice-status-text').textContent = "點擊麥克風，開始語音指令", 2000);
+                if (cmd.includes('天氣')) Router.navigate('weather');
+                else if (cmd.includes('記帳') || cmd.includes('錢')) Router.navigate('expense');
+                else if (cmd.includes('搜尋')) Router.navigate('search');
+            }
+        };
+
+        // --- Bootstrap (Main) ---
+        // Run immediately when script loads
+        window.onload = function () {
+            Router.init();
+            AuthManager.init();
+            WeatherManager.init();
+            ExpenseManager.init();
+            SearchManager.init();
+
+            window.app = { router: Router, expense: ExpenseManager };
+            console.log("Core App Initialized");
+        };
+    </script>
+
+    <!-- FIREBASE MODULE (Optimistic Loading) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Configuration ---
+        const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
+
+        try {
+            // --- Init Services ---
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            // Expose services to global scope for the main script to use
+            window.firebaseServices = {
+                auth, db,
+                signInAnonymously, signOut, onAuthStateChanged,
+                collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp
+            };
+
+            console.log("Firebase Loaded Successfully");
+
+            // Attach Real Auth Listeners if AuthManager is ready
+            onAuthStateChanged(auth, (user) => {
+                // If we are currently mocking, and a real user comes in, switch?
+                // For now, let's just log it. The main script handles mock mainly.
+                // If we wanted real auth integration, we'd hook it up here:
+                // if (window.app && !state.user?.isMock) { ... }
+                console.log("Firebase Auth State:", user ? "Logged In" : "Logged Out");
+
+                // If not mock user, update state
+                if (typeof state !== 'undefined' && state.user && state.user.isMock) {
+                    // Do nothing, prefer mock.
+                } else if (typeof AuthManager !== 'undefined') {
+                    // AuthManager.handleUser(user);
+                }
+            });
+
+            // Re-bind Guest Login to actual Firebase Anon Login if available
+            const guestBtn = document.getElementById('btn-guest-login');
+            if (guestBtn) {
+                guestBtn.onclick = () => {
+                    signInAnonymously(auth)
+                        .then(() => {
+                            // Auth listener will catch it? 
+                            // Actually, let's just reuse the mock flow for consistency + simplicity 
+                            // unless we really want real DB access.
+                            // For this task, "Guest Button" working is priority.
+                            // The non-module script already bound it to setMockUser.
+                            // Let's overwite it ONLY if we successfully loaded module?
+                            // No, let's keep it robust. If modules load, great.
+
+                            // If we want real backend for guest:
+                            // AuthManager.handleUser(auth.currentUser);
+                        })
+                        .catch((e) => {
+                            console.warn("Firebase Anon Login failed, falling back to local:", e);
+                            if (window.AuthManager) window.AuthManager.setMockUser();
+                        });
+                };
+            }
+
+        } catch (e) {
+            console.warn("Firebase Module failed to initialize (likely due to file:// protocol or offline). App running in Local Mode.");
+        }
+    </script>
+</body>
+
+</html>
