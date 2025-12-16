@@ -163,7 +163,7 @@
 
                     <!-- Debug Button -->
                     <div style="text-align: center; margin-bottom: 1rem;">
-                        <button onclick="window.WeatherManager.fetchWeather()"
+                        <button onclick="window.WeatherManager.refresh()"
                             style="background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); padding: 4px 12px; border-radius: 4px; cursor: pointer;">
                             <i data-lucide="refresh-cw" width="14"></i> 重新整理
                         </button>
@@ -313,17 +313,18 @@
     <script>
         // Inject Firebase Configuration for firebase-init.js
         window.__firebase_config = JSON.stringify({
-            apiKey: "**********************",
-            authDomain: "**********************",
-            projectId: "**********************",
-            storageBucket: "**********************",
-            messagingSenderId: "**********************",
-            appId: "**********************",
-            measurementId: "**********************"
+            apiKey: "AIzaSyCyFu4JCvqGtj6H1pInPE5wfpOTaNnubBE",
+            authDomain: "personal-assistant-rob.firebaseapp.com",
+            projectId: "personal-assistant-rob",
+            storageBucket: "personal-assistant-rob.firebasestorage.app",
+            messagingSenderId: "10282114344",
+            appId: "1:10282114344:web:f6d0994368ddbab14d041d",
+            measurementId: "G-5SZXXN8M09"
         });
     </script>
 
     <!-- LOGIC -->
+    <script src="scripts/config.js"></script>
     <script src="scripts/utils.js"></script>
     <script src="scripts/voice.js"></script>
     <script src="scripts/weather.js"></script>

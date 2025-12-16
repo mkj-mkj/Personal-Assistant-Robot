@@ -1,8 +1,5 @@
 // --- Expense ---
-// --- Expense ---
 window.ExpenseManager = {
-    unsubscribe: null,
-
     init() {
         $('expense-form').onsubmit = (e) => {
             e.preventDefault();
@@ -10,39 +7,59 @@ window.ExpenseManager = {
         };
     },
 
-    initListener() {
-        if (this.unsubscribe) this.unsubscribe();
-        const user = state.user;
-        if (!user) return;
+    async initListener() {
+        // Load initial data from API
+        await this.loadExpenses();
+    },
 
-        // Mock Mode or No Firebase
-        if (user.isMock || !window.firebaseServices) {
-            $('expense-mock-badge').classList.remove('hidden');
-            // Setup initial dummy data if empty
-            if (state.expenses.length === 0) {
-                this.render([
-                    { id: '1', amount: 200, category: '餐飲', description: '午餐', dateString: '2023/12/12' },
-                    { id: '2', amount: 50, category: '交通', description: '捷運', dateString: '2023/12/12' }
-                ]);
-            }
-            return;
-        }
-
-        // Firebase Mode
-        $('expense-mock-badge').classList.add('hidden');
-
+    async loadExpenses() {
         try {
-            const { db, collection, query, orderBy, onSnapshot } = window.firebaseServices;
-            const appId = window.__app_id || 'default-app-id';
+            const user = window.state?.user;
+            if (!user || !user.uid) {
+                console.warn("ExpenseManager: No user logged in, clearing data");
+                this.render([]);
+                return;
+            }
 
-            const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'expenses'), orderBy('createdAt', 'desc'));
-            this.unsubscribe = onSnapshot(q, (snapshot) => {
-                this.render(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            });
+            const res = await fetch(`${CONFIG.API_BASE_URL}/expense?userId=${user.uid}`);
+            if (!res.ok) throw new Error("Failed to fetch expenses: " + res.status);
+            let data = await res.json();
+
+            // Handle Lambda Proxy Integration response if it wasn't unwrapped by API Gateway
+            if (data.body && typeof data.body === 'string') {
+                try {
+                    data = JSON.parse(data.body);
+                } catch (e) {
+                    console.error("Failed to parse inner body", e);
+                }
+            }
+
+            // Ensure data is an array
+            if (!Array.isArray(data)) {
+                console.error("ExpenseManager: Expected array but got", data);
+                // If it's an empty object or null, treat as empty array
+                if (!data || Object.keys(data).length === 0) {
+                    data = [];
+                } else {
+                    throw new Error("Invalid expense data received");
+                }
+            }
+
+            // Sort by createdAt desc if possible, or handle in frontend
+            // The backend scan doesn't guarantee order, so let's sort here
+            data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            // Format dateString for display if not present
+            const formattedData = data.map(item => ({
+                ...item,
+                dateString: item.dateString || new Date(item.createdAt).toLocaleDateString()
+            }));
+
+            this.render(formattedData);
         } catch (e) {
-            console.error("Firebase expense listener failed:", e);
-            // Fallback to mock
-            $('expense-mock-badge').classList.remove('hidden');
+            console.error("Load expenses failed", e);
+            // Show error or empty state
+            this.render([]);
         }
     },
 
@@ -52,54 +69,67 @@ window.ExpenseManager = {
         const desc = $('expense-desc').value;
         if (!amt) return;
 
-        const newDoc = {
+        const user = window.state?.user;
+        if (!user || !user.uid) {
+            alert("請先登入");
+            return;
+        }
+
+        const payload = {
+            userId: user.uid,
             amount: Number(amt),
             category: cat,
             description: desc || cat,
-            createdAt: new Date(), // Local object for mock
             dateString: new Date().toLocaleDateString()
         };
 
-        if (state.user.isMock || !window.firebaseServices) {
-            alert("試用模式：資料已新增至介面 (不會儲存到雲端)");
-            this.render([{ ...newDoc, id: Date.now().toString() }, ...state.expenses]);
-        } else {
-            try {
-                const { db, collection, addDoc, serverTimestamp } = window.firebaseServices;
-                const appId = window.__app_id || 'default-app-id';
-                await addDoc(collection(db, 'artifacts', appId, 'users', state.user.uid, 'expenses'), {
-                    ...newDoc,
-                    createdAt: serverTimestamp()
-                });
-            } catch (e) {
-                console.error("Add expense failed", e);
-                alert("儲存失敗，請檢查網路");
-            }
+        try {
+            const res = await fetch(`${CONFIG.API_BASE_URL}/expense`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error("Add expense failed");
+
+            // Reload list to get updated data
+            await this.loadExpenses();
+
+            $('expense-amount').value = '';
+            $('expense-desc').value = '';
+        } catch (e) {
+            console.error("Add expense failed", e);
+            alert("新增失敗，請檢查網路或後端狀態");
         }
-        $('expense-amount').value = '';
-        $('expense-desc').value = '';
     },
 
     async deleteExpense(id) {
-        if (state.user.isMock || !window.firebaseServices) {
-            this.render(state.expenses.filter(e => e.id !== id));
-            return;
-        }
+        if (!confirm("確定要刪除嗎？")) return;
+
         try {
-            const { db, doc, deleteDoc } = window.firebaseServices;
-            const appId = window.__app_id || 'default-app-id';
-            await deleteDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'expenses', id));
+            const res = await fetch(`${CONFIG.API_BASE_URL}/expense?id=${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!res.ok) throw new Error("Delete failed");
+
+            // Reload list
+            await this.loadExpenses();
         } catch (e) {
             console.error("Delete failed", e);
+            alert("刪除失敗");
         }
     },
 
     render(data) {
         state.expenses = data;
         const total = data.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-        $('expense-total').textContent = `$${total.toLocaleString()}`;
+        const totalEl = $('expense-total');
+        if (totalEl) totalEl.textContent = `$${total.toLocaleString()}`;
 
         const tbody = $('expense-table-body');
+        if (!tbody) return;
+
         if (data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">無資料</td></tr>`;
             return;
@@ -112,7 +142,7 @@ window.ExpenseManager = {
                 <td>${item.description}</td>
                 <td style="text-align: right; color: var(--accent-emerald); font-weight: bold;">$${item.amount}</td>
                 <td style="text-align: center;">
-                    <button onclick="window.app.expense.deleteExpense('${item.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">
+                    <button onclick="window.ExpenseManager.deleteExpense('${item.id}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">
                         <i data-lucide="trash-2" width="16"></i>
                     </button>
                 </td>

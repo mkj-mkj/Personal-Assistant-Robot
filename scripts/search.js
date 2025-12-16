@@ -1,6 +1,4 @@
 // --- Search ---
-const GEMINI_API_KEY = '**********'; //Replace with your actual Gemini API Key
-
 window.SearchManager = {
     init() {
         $('chat-form').onsubmit = (e) => {
@@ -16,11 +14,6 @@ window.SearchManager = {
         const query = input.value;
         if (!query) return;
 
-        if (GEMINI_API_KEY === 'YOUR_API_KEY_HERE') {
-            this.addMessage('system', '請在 scripts/search.js 中設定您的 Gemini API Key');
-            return;
-        }
-
         this.addMessage('user', query);
         input.value = '';
         $('chat-placeholder').classList.add('hidden');
@@ -28,12 +21,15 @@ window.SearchManager = {
         this.addMessage('system', 'AI 正在思考...', true);
 
         try {
-            const response = await this.callGeminiAPI(query + " (請一律使用繁體中文回答，不要使用簡體中文)", GEMINI_API_KEY);
+            const response = await this.callBackendAPI(query);
             const loader = document.getElementById('chat-loading');
             if (loader) loader.remove();
 
-            const text = response.candidates[0].content.parts[0].text;
-            this.addMessage('ai', text);
+            if (response.answer) {
+                this.addMessage('ai', response.answer);
+            } else {
+                throw new Error("Invalid response from server");
+            }
         } catch (e) {
             console.error(e);
             const loader = document.getElementById('chat-loading');
@@ -42,26 +38,38 @@ window.SearchManager = {
         }
     },
 
-    async callGeminiAPI(prompt, apiKey) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-        const payload = {
-            contents: [{
-                parts: [{ text: prompt }]
-            }]
-        };
+    async callBackendAPI(prompt) {
+        // Use the backend API which calls Bedrock
+        const url = `${CONFIG.API_BASE_URL}/search`;
 
         const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ prompt: prompt })
         });
 
         if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error?.message || 'Unknown error');
+            const errText = await res.text();
+            console.error("SearchManager: Backend Error Details", errText);
+            throw new Error(`Search API Error: ${res.status} - ${errText}`);
         }
 
-        return await res.json();
+        let data = await res.json();
+
+        // Handle Lambda Proxy Integration response if it wasn't unwrapped by API Gateway
+        if (data.body && typeof data.body === 'string') {
+            try {
+                data = JSON.parse(data.body);
+            } catch (e) {
+                console.error("Failed to parse inner body", e);
+            }
+        }
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        return data;
     },
 
     addMessage(type, text, isLoading = false) {

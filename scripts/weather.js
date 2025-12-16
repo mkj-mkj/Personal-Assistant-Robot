@@ -19,10 +19,32 @@ window.WeatherManager = {
         if (errorDiv) errorDiv.classList.add('hidden');
 
         try {
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`);
-            if (!res.ok) throw new Error("Weather API Error");
-            const data = await res.json();
-            console.log("WeatherManager: Data received", data);
+            // Call Backend API instead of Open-Meteo directly
+            const res = await fetch(`${CONFIG.API_BASE_URL}/weather?lat=${lat}&lon=${lon}`);
+
+            if (!res.ok) {
+                const errText = await res.text();
+                console.error("WeatherManager: Backend Error Details", errText);
+                throw new Error(`Weather API Error: ${res.status} - ${errText}`);
+            }
+            let data = await res.json();
+            console.log("WeatherManager: Raw data received", data);
+
+            // Handle Lambda Proxy Integration response if it wasn't unwrapped by API Gateway
+            if (data.body && typeof data.body === 'string') {
+                console.log("WeatherManager: Parsing inner body...");
+                try {
+                    data = JSON.parse(data.body);
+                } catch (e) {
+                    console.error("Failed to parse inner body", e);
+                }
+            }
+
+            // Validate Data
+            if (!data.current || !data.daily) {
+                console.error("WeatherManager: Invalid data structure", data);
+                throw new Error("Invalid weather data received");
+            }
 
             // Update State
             if (window.state) window.state.weather = data;
@@ -47,6 +69,8 @@ window.WeatherManager = {
         errorDiv.classList.add('hidden');
 
         try {
+            // Geocoding still uses Open-Meteo public API (Client side)
+            // Because backend doesn't have a geocoding handler yet
             const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh&format=json`);
             const data = await res.json();
 
