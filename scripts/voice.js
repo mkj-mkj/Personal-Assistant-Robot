@@ -1,16 +1,138 @@
 // --- Voice ---
 window.VoiceManager = {
-    startVoice(cb, btn) {
+    audioContext: null,
+    mediaStream: null,
+    processor: null,
+    
+    async startVoice(cb, btn) {
+        btn.classList.add('listening');
+        
+        try {
+            // Get microphone access using Web Audio API
+            this.mediaStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                    sampleRate: 16000
+                }
+            });
+            
+            // Create audio context
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                sampleRate: 16000
+            });
+            
+            const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+            this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+            
+            // Collect audio data
+            const audioChunks = [];
+            
+            this.processor.onaudioprocess = (e) => {
+                const inputData = e.inputBuffer.getChannelData(0);
+                // Convert Float32 to Int16 PCM
+                const pcmData = new Int16Array(inputData.length);
+                for (let i = 0; i < inputData.length; i++) {
+                    const s = Math.max(-1, Math.min(1, inputData[i]));
+                    pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                }
+                audioChunks.push(pcmData);
+            };
+            
+            source.connect(this.processor);
+            this.processor.connect(this.audioContext.destination);
+            
+            console.log('Recording started with Web Audio API...');
+            
+            // Record for 5 seconds then process
+            setTimeout(async () => {
+                this.stopVoice();
+                
+                console.log(`Audio captured: ${audioChunks.length} chunks`);
+                
+                // Try AWS Transcribe first, fallback to Web Speech API
+                if (window.AWSTranscribeStreaming) {
+                    try {
+                        console.log('Using AWS Transcribe Streaming...');
+                        await window.AWSTranscribeStreaming.startStreaming(
+                            audioChunks,
+                            (transcript) => {
+                                console.log('AWS Transcribe result:', transcript);
+                                cb(transcript);
+                                btn.classList.remove('listening');
+                            },
+                            (error) => {
+                                console.error('AWS Transcribe failed, falling back to Web Speech API:', error);
+                                this.transcribeWithWebSpeech(cb, btn);
+                            }
+                        );
+                    } catch (error) {
+                        console.error('AWS Transcribe error:', error);
+                        this.transcribeWithWebSpeech(cb, btn);
+                    }
+                } else {
+                    console.log('AWS Transcribe not available, using Web Speech API');
+                    this.transcribeWithWebSpeech(cb, btn);
+                }
+                
+            }, 5000);
+            
+        } catch (error) {
+            console.error('Web Audio API error:', error);
+            btn.classList.remove('listening');
+            
+            if (error.name === 'NotAllowedError') {
+                alert('麥克風權限被拒絕\n請在瀏覽器設定中允許麥克風存取');
+            } else if (error.name === 'NotFoundError') {
+                alert('找不到麥克風設備');
+            } else {
+                alert('無法啟動麥克風: ' + error.message);
+            }
+        }
+    },
+    
+    stopVoice() {
+        if (this.processor) {
+            this.processor.disconnect();
+            this.processor = null;
+        }
+        if (this.mediaStream) {
+            this.mediaStream.getTracks().forEach(track => track.stop());
+            this.mediaStream = null;
+        }
+        if (this.audioContext) {
+            this.audioContext.close();
+            this.audioContext = null;
+        }
+        console.log('Recording stopped');
+    },
+    
+    transcribeWithWebSpeech(cb, btn) {
+        // Fallback to Web Speech API for transcription
         if (!('webkitSpeechRecognition' in window)) {
-            alert("不支援語音 API，模擬輸入");
-            cb("記帳");
+            alert("不支援語音 API，請使用 Chrome 或 Edge 瀏覽器");
+            btn.classList.remove('listening');
             return;
         }
+        
         const recognition = new webkitSpeechRecognition();
         recognition.lang = 'zh-TW';
-        btn.classList.add('listening'); // Add visual cue
-        recognition.onresult = (e) => cb(e.results[0][0].transcript);
-        recognition.onend = () => btn.classList.remove('listening');
+        
+        recognition.onresult = (e) => {
+            cb(e.results[0][0].transcript);
+            btn.classList.remove('listening');
+        };
+        
+        recognition.onerror = (e) => {
+            console.error('Speech recognition error:', e.error);
+            btn.classList.remove('listening');
+        };
+        
+        recognition.onend = () => {
+            btn.classList.remove('listening');
+        };
+        
         recognition.start();
     },
 
