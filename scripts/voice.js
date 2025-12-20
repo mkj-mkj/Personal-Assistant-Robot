@@ -1,14 +1,13 @@
 // --- Voice ---
 window.VoiceManager = {
-    audioContext: null,
+    mediaRecorder: null,
     mediaStream: null,
-    processor: null,
     
     async startVoice(cb, btn) {
         btn.classList.add('listening');
         
         try {
-            // Get microphone access using Web Audio API
+            // Get microphone access using MediaRecorder API (modern approach)
             this.mediaStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     echoCancellation: true,
@@ -18,45 +17,33 @@ window.VoiceManager = {
                 }
             });
             
-            // Create audio context
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                sampleRate: 16000
-            });
-            
-            const source = this.audioContext.createMediaStreamSource(this.mediaStream);
-            this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-            
             // Collect audio data
             const audioChunks = [];
             
-            this.processor.onaudioprocess = (e) => {
-                const inputData = e.inputBuffer.getChannelData(0);
-                // Convert Float32 to Int16 PCM
-                const pcmData = new Int16Array(inputData.length);
-                for (let i = 0; i < inputData.length; i++) {
-                    const s = Math.max(-1, Math.min(1, inputData[i]));
-                    pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            // Create MediaRecorder
+            this.mediaRecorder = new MediaRecorder(this.mediaStream, {
+                mimeType: 'audio/webm'
+            });
+            
+            this.mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    audioChunks.push(e.data);
                 }
-                audioChunks.push(pcmData);
             };
             
-            source.connect(this.processor);
-            this.processor.connect(this.audioContext.destination);
-            
-            console.log('Recording started with Web Audio API...');
-            
-            // Record for 5 seconds then process
-            setTimeout(async () => {
-                this.stopVoice();
-                
+            this.mediaRecorder.onstop = async () => {
                 console.log(`Audio captured: ${audioChunks.length} chunks`);
                 
                 // Try AWS Transcribe first, fallback to Web Speech API
-                if (window.AWSTranscribeStreaming) {
+                if (window.AWSTranscribeStreaming && audioChunks.length > 0) {
                     try {
                         console.log('Using AWS Transcribe Streaming...');
+                        // Convert audio blob to PCM format for AWS
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const arrayBuffer = await audioBlob.arrayBuffer();
+                        
                         await window.AWSTranscribeStreaming.startStreaming(
-                            audioChunks,
+                            arrayBuffer,
                             (transcript) => {
                                 console.log('AWS Transcribe result:', transcript);
                                 cb(transcript);
@@ -75,11 +62,18 @@ window.VoiceManager = {
                     console.log('AWS Transcribe not available, using Web Speech API');
                     this.transcribeWithWebSpeech(cb, btn);
                 }
-                
+            };
+            
+            this.mediaRecorder.start(100); // Collect data every 100ms
+            console.log('Recording started with MediaRecorder API...');
+            
+            // Record for 5 seconds then stop
+            setTimeout(() => {
+                this.stopVoice();
             }, 5000);
             
         } catch (error) {
-            console.error('Web Audio API error:', error);
+            console.error('MediaRecorder error:', error);
             btn.classList.remove('listening');
             
             if (error.name === 'NotAllowedError') {
@@ -93,17 +87,12 @@ window.VoiceManager = {
     },
     
     stopVoice() {
-        if (this.processor) {
-            this.processor.disconnect();
-            this.processor = null;
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.stop();
         }
         if (this.mediaStream) {
             this.mediaStream.getTracks().forEach(track => track.stop());
             this.mediaStream = null;
-        }
-        if (this.audioContext) {
-            this.audioContext.close();
-            this.audioContext = null;
         }
         console.log('Recording stopped');
     },
@@ -127,6 +116,11 @@ window.VoiceManager = {
         recognition.onerror = (e) => {
             console.error('Speech recognition error:', e.error);
             btn.classList.remove('listening');
+            
+            // Don't show error for abort (user stopped speaking)
+            if (e.error !== 'aborted' && e.error !== 'no-speech') {
+                alert(`語音識別錯誤: ${e.error}`);
+            }
         };
         
         recognition.onend = () => {
